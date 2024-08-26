@@ -28,3 +28,4 @@
 2026-04-14T14:40:20  test: add edge case
 2026-05-08T09:57:27  refactor: tidy internals
 2026-05-24T16:14:34  fix: handle empty input gracefully
+2024-08-26T17:01:11  chore: NULLBYTE nightly sweep
