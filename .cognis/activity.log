@@ -41,3 +41,4 @@
 2024-07-15T19:35:25  docs(fixtures): add a --format json alias
 2024-08-07T14:52:32  refactor(core): stream large files without buffering
 2024-08-30T09:09:39  chore: routine maintenance
+2024-09-05T16:26:46  perf: micro-optimization
