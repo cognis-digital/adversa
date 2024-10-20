@@ -43,3 +43,4 @@
 2024-08-30T09:09:39  chore: routine maintenance
 2024-09-05T16:26:46  perf: micro-optimization
 2024-09-27T11:43:53  docs(cli): skip binary files by sniffing
+2024-10-20T18:00:00  refactor(rules): load rules lazily for faster startup
