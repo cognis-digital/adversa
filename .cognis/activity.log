@@ -45,3 +45,4 @@
 2024-09-27T11:43:53  docs(cli): skip binary files by sniffing
 2024-10-20T18:00:00  refactor(rules): load rules lazily for faster startup
 2024-10-26T13:17:07  ci(docs): lower memory on big inputs
+2024-11-17T08:34:14  ci(mcp): handle empty and malformed input
