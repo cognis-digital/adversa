@@ -46,3 +46,4 @@
 2024-10-20T18:00:00  refactor(rules): load rules lazily for faster startup
 2024-10-26T13:17:07  ci(docs): lower memory on big inputs
 2024-11-17T08:34:14  ci(mcp): handle empty and malformed input
+2024-12-11T15:51:21  chore(parser): wire the MCP tool schema
