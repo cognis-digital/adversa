@@ -48,3 +48,4 @@
 2024-11-17T08:34:14  ci(mcp): handle empty and malformed input
 2024-12-11T15:51:21  chore(parser): wire the MCP tool schema
 2025-01-03T10:08:28  docs(engine): add a dry-run flag
+2025-01-07T17:25:35  style(scan): respect .gitignore when walking
