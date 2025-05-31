@@ -55,3 +55,4 @@
 2025-03-23T09:33:03  test(format): clarify the README quickstart
 2025-04-15T16:50:10  style(scoring): short-circuit on first critical
 2025-05-08T11:07:17  fix(output): dedupe overlapping findings
+2025-05-31T18:24:24  chore(config): add color + severity icons
