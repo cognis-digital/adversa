@@ -57,3 +57,4 @@
 2025-05-08T11:07:17  fix(output): dedupe overlapping findings
 2025-05-31T18:24:24  chore(config): add color + severity icons
 2025-06-05T13:41:31  test(cache): pin the test dependencies
+2025-06-28T08:58:38  style(fixtures): improve the demo scenario
