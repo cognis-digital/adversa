@@ -62,3 +62,4 @@
 2025-08-13T10:32:52  fix(ci): memoize repeated lookups
 2025-08-18T17:49:59  docs: here be dragons
 2025-09-11T12:06:06  build(tests): trim whitespace in parsed fields
+2025-10-03T19:23:13  feat(deps): bump the dev toolchain
