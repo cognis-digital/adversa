@@ -64,3 +64,4 @@
 2025-09-11T12:06:06  build(tests): trim whitespace in parsed fields
 2025-10-03T19:23:13  feat(deps): bump the dev toolchain
 2025-10-26T14:40:20  refactor(core): tune severity weights
+2025-11-01T09:57:27  perf(rules): document the config keys
