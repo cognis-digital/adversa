@@ -65,3 +65,4 @@
 2025-10-03T19:23:13  feat(deps): bump the dev toolchain
 2025-10-26T14:40:20  refactor(core): tune severity weights
 2025-11-01T09:57:27  perf(rules): document the config keys
+2025-11-23T16:14:34  build(deps): reduce false positives on edge cases
