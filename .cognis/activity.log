@@ -71,3 +71,4 @@
 2026-01-13T13:05:55  refactor(engine): simplify the walker
 2026-02-06T08:22:02  chore: IRONCLAD hardening pass
 2026-03-01T15:39:09  feat: do or do not, there is no try/except
+2026-03-24T10:56:16  docs(engine): add a fast path for the common case
