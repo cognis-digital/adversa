@@ -1,184 +1,152 @@
 """ADVERSA command-line interface.
 
-Usage:
-  adversa scan [--target echo|transcript] [--transcript FILE]
-               [--probes FILE] [--format table|json]
-               [--severity-threshold low|medium|high|critical] [--fail-on-findings]
-  adversa list-probes [--probes FILE] [--format table|json]
-  adversa --version
+Subcommands:
+  catalog   List the bundled probe catalog (OWASP LLM Top-10 + MITRE ATLAS).
+  scan      Run probes against a target and report findings.
+  probe     Show full detail (prompts + grader + remediation) for one probe.
+  refs      Show the OWASP LLM Top-10 + ATLAS tactic reference tables.
 
-Default target is 'transcript' when --transcript is given, else 'echo'.
-The 'echo' target simply returns the prompt back (a deliberately *insecure*
-model that obeys every injection) so the tool produces real findings out of
-the box for demos and CI. Point --transcript at recorded model replies to
-red-team a real endpoint offline.
+Targets:
+  secure | vulnerable      bundled deterministic reference targets
+  module:callable          import a user callable target(prompt)->str
 
-Exit codes:
-  0  no findings at/above threshold
-  1  findings at/above threshold (when --fail-on-findings, the default)
-  2  usage / file error
+Exit codes: 0 = no findings, 1 = findings present, 2 = usage error.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from typing import List, Optional
 
-from . import TOOL_NAME, TOOL_VERSION
-from .core import (
-    Report,
-    builtin_probes,
-    load_probes,
-    load_transcript,
-    run_probes,
-    severity_rank,
-    transcript_target,
-)
+from . import core
 
 
-def _echo_target(prompt: str) -> str:
-    """An intentionally compliant 'model': echoes the attack back verbatim.
-
-    This represents a worst-case, fully-injectable target. It will trip most
-    success detectors, which is what we want for a runnable demo and CI gate.
-    """
-    return prompt
+def _emit(text: str) -> None:
+    print(text)
 
 
-def _resolve_probes(args) -> list:
-    if getattr(args, "probes", None):
-        return load_probes(args.probes)
-    return builtin_probes()
-
-
-def _print_table(report: Report, threshold: int) -> None:
-    print(f"ADVERSA scan against: {report.target}")
-    print(f"  probes run : {report.total}")
-    print(f"  resisted   : {report.passed}")
-    print(f"  findings   : {report.failed}")
-    print(f"  ASR        : {report.attack_success_rate:.0%}  (attack success rate)")
-    print(f"  worst sev  : {report.worst_severity}")
-    if report.findings:
-        print("")
-        print("  FINDINGS (model fell for the attack):")
-        print("  {:<6} {:<8} {:<13} {:<10} {}".format(
-            "ID", "OWASP", "ATLAS", "SEVERITY", "PROBE"))
-        for f in sorted(report.findings, key=lambda x: -severity_rank(x.severity)):
-            mark = "!!" if severity_rank(f.severity) >= threshold else "  "
-            print("  {} {:<4} {:<8} {:<13} {:<10} {}".format(
-                mark, f.probe_id, f.category, f.atlas, f.severity, f.name))
+def _cmd_catalog(args) -> int:
+    probes = core.list_probes(owasp=args.owasp, atlas=args.atlas,
+                              min_severity=args.min_severity)
+    if args.format == "json":
+        _emit(json.dumps(core.render_catalog_json(probes), indent=2))
     else:
-        print("\n  No successful attacks detected.")
+        _emit(core.render_catalog_table(probes))
+    return 0
+
+
+def _cmd_refs(args) -> int:
+    if args.format == "json":
+        _emit(json.dumps({
+            "owasp_llm_top10": core.OWASP_LLM,
+            "atlas_tactics": core.ATLAS_TACTICS,
+        }, indent=2))
+    else:
+        out = ["OWASP LLM Top-10 (2025):"]
+        for k, v in core.OWASP_LLM.items():
+            out.append(f"  {k}  {v}")
+        out.append("")
+        out.append("MITRE ATLAS tactics:")
+        for k, v in core.ATLAS_TACTICS.items():
+            out.append(f"  {k:<12} {v}")
+        _emit("\n".join(out))
+    return 0
+
+
+def _cmd_probe(args) -> int:
+    p = core.CATALOG_BY_ID.get(args.id)
+    if p is None:
+        print(f"[{core.TOOL_NAME}] unknown probe id: {args.id}", file=sys.stderr)
+        return 2
+    if args.format == "json":
+        _emit(json.dumps(core.render_catalog_json([p])["probes"][0], indent=2))
+        return 0
+    out = [f"{p.pid} - {p.name}",
+           f"  OWASP : {p.owasp} {p.owasp_name}",
+           f"  ATLAS : {p.atlas} {p.atlas_name}",
+           f"  SEV   : {p.severity}",
+           f"  desc  : {p.description}",
+           f"  fix   : {p.remediation}",
+           "  cases :"]
+    for i, c in enumerate(p.cases, 1):
+        out.append(f"    [{i}] grader={c.grader}")
+        out.append(f"        prompt: {c.prompt}")
+    _emit("\n".join(out))
+    return 0
 
 
 def _cmd_scan(args) -> int:
-    probes = _resolve_probes(args)
+    try:
+        name, target = core.resolve_target(args.target)
+    except Exception as exc:
+        print(f"[{core.TOOL_NAME}] {exc}", file=sys.stderr)
+        return 2
 
-    target_name = args.target
-    if args.transcript and args.target == "echo":
-        target_name = "transcript"
-    if target_name == "transcript":
-        if not args.transcript:
-            print("error: --target transcript requires --transcript FILE", file=sys.stderr)
-            return 2
-        pairs = load_transcript(args.transcript)
-        # Allow transcripts keyed by probe id: expand to prompt->reply.
-        by_id = {p.id: p.prompt for p in probes}
-        expanded = {}
-        for key, val in pairs.items():
-            if key in by_id:
-                expanded[by_id[key]] = val
-            else:
-                expanded[key] = val
-        target = transcript_target(expanded)
-        label = args.transcript
-    else:
-        target = _echo_target
-        label = "echo (insecure demo model)"
+    probes = core.list_probes(owasp=args.owasp, atlas=args.atlas,
+                              min_severity=args.min_severity)
+    if args.probe:
+        probes = [p for p in probes if p.pid in set(args.probe)]
+    if not probes:
+        print(f"[{core.TOOL_NAME}] no probes selected", file=sys.stderr)
+        return 2
 
-    report = run_probes(probes, target, target_name=label)
-    threshold = severity_rank(args.severity_threshold)
+    report = core.scan(target, probes, target_name=name)
 
     if args.format == "json":
-        print(json.dumps(report.to_dict(), indent=2))
+        _emit(json.dumps(core.render_json(report), indent=2))
     else:
-        _print_table(report, threshold)
+        _emit(core.render_table(report))
 
-    gating = [f for f in report.findings if severity_rank(f.severity) >= threshold]
-    if gating and args.fail_on_findings:
-        return 1
-    return 0
-
-
-def _cmd_list_probes(args) -> int:
-    probes = _resolve_probes(args)
-    if args.format == "json":
-        print(json.dumps(
-            [{"id": p.id, "name": p.name, "category": p.category,
-              "atlas": p.atlas, "severity": p.severity,
-              "description": p.description} for p in probes],
-            indent=2))
-    else:
-        print("{:<6} {:<8} {:<13} {:<10} {}".format(
-            "ID", "OWASP", "ATLAS", "SEVERITY", "NAME"))
-        for p in probes:
-            print("{:<6} {:<8} {:<13} {:<10} {}".format(
-                p.id, p.category, p.atlas, p.severity, p.name))
-    return 0
+    return 0 if report.ok else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog=TOOL_NAME,
-        description="ADVERSA - LLM red-team harness (OWASP LLM Top 10 + MITRE ATLAS).",
-        epilog="Example: adversa scan --transcript demos/01-basic/transcript.json --format table",
+    p = argparse.ArgumentParser(
+        prog=core.TOOL_NAME,
+        description="LLM red-team probe runner (OWASP LLM Top-10 + MITRE ATLAS).",
     )
-    parser.add_argument("--version", action="version",
-                        version=f"{TOOL_NAME} {TOOL_VERSION}")
-    sub = parser.add_subparsers(dest="command")
+    p.add_argument("--version", action="version",
+                   version=f"{core.TOOL_NAME} {core.TOOL_VERSION}")
+    sub = p.add_subparsers(dest="cmd")
 
-    def add_common(sp):
-        sp.add_argument("--probes", metavar="FILE",
-                        help="JSON file of custom probes (defaults to built-in pack)")
-        sp.add_argument("--format", choices=["table", "json"], default="table",
-                        help="output format (default: table)")
+    def _common_filters(sp):
+        sp.add_argument("--owasp", help="filter by OWASP id, e.g. LLM01")
+        sp.add_argument("--atlas", help="filter by ATLAS tactic id, e.g. AML.TA0004")
+        sp.add_argument("--min-severity", dest="min_severity",
+                        choices=list(core.SEVERITY_ORDER),
+                        help="only probes at/above this severity")
+        sp.add_argument("--format", choices=["table", "json"], default="table")
 
-    sp_scan = sub.add_parser("scan", help="run attack probes against a target")
-    add_common(sp_scan)
-    sp_scan.add_argument("--target", choices=["echo", "transcript"], default="echo",
-                         help="target model adapter (default: echo)")
-    sp_scan.add_argument("--transcript", metavar="FILE",
-                         help="recorded model replies (JSON) to red-team offline")
-    sp_scan.add_argument("--severity-threshold",
-                         choices=["low", "medium", "high", "critical"], default="low",
-                         help="minimum severity that gates the exit code (default: low)")
-    sp_scan.add_argument("--no-fail-on-findings", dest="fail_on_findings",
-                         action="store_false",
-                         help="always exit 0 even when attacks succeed")
-    sp_scan.set_defaults(func=_cmd_scan, fail_on_findings=True)
+    c = sub.add_parser("catalog", help="list the probe catalog")
+    _common_filters(c)
+    c.set_defaults(func=_cmd_catalog)
 
-    sp_list = sub.add_parser("list-probes", help="show the loaded attack pack")
-    add_common(sp_list)
-    sp_list.set_defaults(func=_cmd_list_probes)
+    s = sub.add_parser("scan", help="run probes against a target")
+    s.add_argument("target", help="secure | vulnerable | module:callable")
+    s.add_argument("--probe", action="append",
+                   help="run only this probe id (repeatable)")
+    _common_filters(s)
+    s.set_defaults(func=_cmd_scan)
 
-    return parser
+    pr = sub.add_parser("probe", help="show detail for one probe")
+    pr.add_argument("id", help="probe id, e.g. pi.direct_override")
+    pr.add_argument("--format", choices=["table", "json"], default="table")
+    pr.set_defaults(func=_cmd_probe)
+
+    r = sub.add_parser("refs", help="show OWASP + ATLAS reference tables")
+    r.add_argument("--format", choices=["table", "json"], default="table")
+    r.set_defaults(func=_cmd_refs)
+
+    return p
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if not getattr(args, "command", None):
+    if not getattr(args, "cmd", None):
         parser.print_help()
-        return 0
-    try:
-        return args.func(args)
-    except FileNotFoundError as exc:
-        print(f"error: file not found: {exc.filename}", file=sys.stderr)
         return 2
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+    return args.func(args)
 
 
 if __name__ == "__main__":

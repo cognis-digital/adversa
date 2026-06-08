@@ -1,11 +1,56 @@
-"""adversa — part of the Cognis Neural Suite."""
-try:  # re-export the tool's public API + identity from core
-    from adversa.core import *  # noqa: F401,F403
-except Exception:  # pragma: no cover
-    pass
-try:
-    from adversa.core import TOOL_NAME, TOOL_VERSION
-except Exception:  # pragma: no cover
-    TOOL_NAME = "adversa"
-    TOOL_VERSION = "0.1.0"
+"""ADVERSA - LLM red-team probe runner (OWASP LLM Top-10 + MITRE ATLAS), in the spirit of garak."""
+from .core import (
+    TOOL_NAME,
+    TOOL_VERSION,
+    OWASP_LLM,
+    ATLAS_TACTICS,
+    SEVERITY_ORDER,
+    GRADERS,
+    CATALOG,
+    CATALOG_BY_ID,
+    BUNDLED_TARGETS,
+    Probe,
+    TestCase,
+    CaseResult,
+    ProbeResult,
+    ScanReport,
+    list_probes,
+    scan,
+    run_case,
+    resolve_target,
+    secure_target,
+    vulnerable_target,
+    render_table,
+    render_json,
+    render_catalog_table,
+    render_catalog_json,
+)
+
+__all__ = [
+    "TOOL_NAME",
+    "TOOL_VERSION",
+    "OWASP_LLM",
+    "ATLAS_TACTICS",
+    "SEVERITY_ORDER",
+    "GRADERS",
+    "CATALOG",
+    "CATALOG_BY_ID",
+    "BUNDLED_TARGETS",
+    "Probe",
+    "TestCase",
+    "CaseResult",
+    "ProbeResult",
+    "ScanReport",
+    "list_probes",
+    "scan",
+    "run_case",
+    "resolve_target",
+    "secure_target",
+    "vulnerable_target",
+    "render_table",
+    "render_json",
+    "render_catalog_table",
+    "render_catalog_json",
+]
+
 __version__ = TOOL_VERSION
