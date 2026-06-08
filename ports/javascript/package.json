@@ -1,0 +1,10 @@
+{
+  "name": "@cognis/adversa",
+  "version": "0.2.0",
+  "description": "JavaScript port of adversa (Cognis Neural Suite)",
+  "bin": {
+    "adversa": "index.js"
+  },
+  "license": "LicenseRef-COCL-1.0",
+  "type": "module"
+}
