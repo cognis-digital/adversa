@@ -14,7 +14,7 @@
 
 ## Why
 
-Security and intelligence teams need lLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs without standing up heavyweight infrastructure. `adversa` is single-purpose, scriptable, CI-friendly, and self-hostable: point it at a target, get prioritized findings in the format your workflow already speaks (table, JSON, SARIF, HTML), and wire it into agents over MCP when you want it autonomous.
+Security and intelligence teams need LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs without standing up heavyweight infrastructure. `adversa` is single-purpose, scriptable, CI-friendly, and self-hostable: point it at a target, get prioritized findings in the format your workflow already speaks (table, JSON, SARIF, HTML), and wire it into agents over MCP when you want it autonomous.
 
 ## Install
 
