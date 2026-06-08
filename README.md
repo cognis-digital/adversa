@@ -36,7 +36,13 @@ LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs — without
 <a name="features"></a>
 ## Features
 
-- ✅ Scan
+- ✅ Severity Rank
+- ✅ Builtin Probes
+- ✅ Load Probes
+- ✅ Detect Success
+- ✅ Run Probes
+- ✅ Transcript Target
+- ✅ Load Transcript
 - ✅ Runs on Linux/macOS/Windows · Docker · devcontainer
 - ✅ Ports in Python, JavaScript, Go, and Rust (`ports/`)
 
