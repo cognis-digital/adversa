@@ -1,10 +1,10 @@
-# CRUCIBLE-AI — LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs
+# ADVERSA — LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs
 
 > Part of the **[Cognis Neural Suite](https://github.com/cognis-digital)** by [Cognis Digital](https://cognis.digital)
 > MIT License · domain: `ai-security`
 
-[![PyPI](https://img.shields.io/pypi/v/cognis-crucible-ai.svg)](https://pypi.org/project/cognis-crucible-ai/)
-[![CI](https://github.com/cognis-digital/crucible-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/cognis-digital/crucible-ai/actions)
+[![PyPI](https://img.shields.io/pypi/v/cognis-adversa.svg)](https://pypi.org/project/cognis-adversa/)
+[![CI](https://github.com/cognis-digital/adversa/actions/workflows/ci.yml/badge.svg)](https://github.com/cognis-digital/adversa/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs.
@@ -12,7 +12,7 @@ LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs.
 ## Install
 
 ```bash
-pip install cognis-crucible-ai
+pip install cognis-adversa
 ```
 
 For local development from this repo:
@@ -24,10 +24,10 @@ pip install -e .
 ## Quick start
 
 ```bash
-crucible-ai --version
-crucible-ai scan demos/                          # run against bundled demo
-crucible-ai scan demos/ --format sarif --out r.sarif --fail-on high
-crucible-ai mcp                                   # start as MCP server (Cognis.Studio / Claude Desktop / Cursor)
+adversa --version
+adversa scan demos/                          # run against bundled demo
+adversa scan demos/ --format sarif --out r.sarif --fail-on high
+adversa mcp                                   # start as MCP server (Cognis.Studio / Claude Desktop / Cursor)
 ```
 
 ## Built-in demo scenarios

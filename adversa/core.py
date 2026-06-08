@@ -1,10 +1,10 @@
-"""CRUCIBLE-AI — LLM red-team harness (offline test runner)."""
+"""ADVERSA — LLM red-team harness (offline test runner)."""
 from __future__ import annotations
 import json, time, re
 from pathlib import Path
 from cognis_core import Finding, ScanResult, score
 
-TOOL_NAME = "CRUCIBLE-AI"
+TOOL_NAME = "ADVERSA"
 TOOL_VERSION = "0.1.0"
 
 # Built-in OWASP LLM Top 10 + MITRE ATLAS probe pack

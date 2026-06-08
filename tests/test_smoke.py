@@ -1,6 +1,6 @@
-"""Smoke tests for CRUCIBLE-AI."""
+"""Smoke tests for ADVERSA."""
 import pytest
-from crucible_ai.core import scan, TOOL_NAME, TOOL_VERSION
+from adversa.core import scan, TOOL_NAME, TOOL_VERSION
 from cognis_core import ScanResult
 
 
@@ -15,5 +15,5 @@ def test_scan_returns_result():
 
 
 def test_cli_importable():
-    from crucible_ai.cli import main
+    from adversa.cli import main
     assert callable(main)

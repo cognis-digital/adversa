@@ -1,6 +1,6 @@
-"""CRUCIBLE-AI command-line interface."""
+"""ADVERSA command-line interface."""
 from cognis_core import build_cli
-from crucible_ai.core import scan, TOOL_NAME, TOOL_VERSION
+from adversa.core import scan, TOOL_NAME, TOOL_VERSION
 
 main = build_cli(
     tool_name=TOOL_NAME,

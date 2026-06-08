@@ -1,9 +1,9 @@
 """
-CRUCIBLE-AI — LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attacks
+ADVERSA — LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attacks
 Part of the Cognis Neural Suite by Cognis Digital.
 https://cognis.digital · MIT License
 """
-from crucible_ai.core import scan, TOOL_NAME, TOOL_VERSION
+from adversa.core import scan, TOOL_NAME, TOOL_VERSION
 
 __version__ = TOOL_VERSION
 __author__ = "Cognis Digital"

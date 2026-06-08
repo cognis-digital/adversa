@@ -18,4 +18,4 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: pip install -e ".[dev]"
       - run: pytest -q
-      - run: crucible-ai --version
+      - run: adversa --version

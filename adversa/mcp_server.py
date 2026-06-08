@@ -1,6 +1,6 @@
-"""CRUCIBLE-AI MCP server — exposes scan as an MCP tool for Cognis.Studio."""
+"""ADVERSA MCP server — exposes scan as an MCP tool for Cognis.Studio."""
 from cognis_core.mcp import build_mcp_server
-from crucible_ai.core import scan, TOOL_NAME
+from adversa.core import scan, TOOL_NAME
 
 run_mcp_server = build_mcp_server(
     tool_name=TOOL_NAME,

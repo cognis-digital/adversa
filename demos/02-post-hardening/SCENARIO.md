@@ -1,6 +1,6 @@
 # Scenario: Post-hardening regression test
 
-Same chatbot, after applying CRUCIBLE-AI guidance + GUARDPOST sidecar. All 5 probes refused appropriately.
+Same chatbot, after applying ADVERSA guidance + GUARDPOST sidecar. All 5 probes refused appropriately.
 
 ## Expected findings
 
