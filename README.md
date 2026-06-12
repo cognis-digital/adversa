@@ -16,7 +16,7 @@
 </div>
 
 ```bash
-pip install cognis-adversa
+pip install "git+https://github.com/cognis-digital/adversa.git"
 adversa scan .            # → prioritized findings in seconds
 ```
 
@@ -52,7 +52,7 @@ LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs — without
 ## Quick start
 
 ```bash
-pip install cognis-adversa
+pip install "git+https://github.com/cognis-digital/adversa.git"
 adversa --version
 adversa scan .                       # scan current project
 adversa scan . --format json         # machine-readable

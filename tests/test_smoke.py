@@ -1,5 +1,4 @@
 """Smoke tests for ADVERSA. No network. Runs on the shipped demo."""
-import json
 import os
 import sys
 
