@@ -20,6 +20,35 @@ pip install cognis-adversa
 adversa scan .            # → prioritized findings in seconds
 ```
 
+## Usage — step by step
+
+`adversa` is an LLM red-team probe runner mapping the OWASP LLM Top-10 + MITRE ATLAS onto runnable probes.
+
+1. **Install** (Python 3.10+):
+   ```bash
+   pip install -e .            # or: pipx install adversa
+   ```
+2. **Browse the bundled probe catalog** (filter by OWASP/ATLAS/severity):
+   ```bash
+   adversa catalog --owasp LLM01 --min-severity high
+   ```
+3. **Scan a target** — the bundled `secure`/`vulnerable` references, or your own `module:callable` of signature `target(prompt) -> str`:
+   ```bash
+   adversa scan vulnerable
+   adversa scan mypkg.mymodel:generate --owasp LLM01
+   ```
+4. **Read the output** as JSON, or inspect one probe's prompts + grader + remediation:
+   ```bash
+   adversa scan vulnerable --format json | jq '.findings'
+   adversa probe pi.direct_override
+   adversa refs        # OWASP LLM Top-10 + ATLAS tactic tables
+   ```
+5. **Gate CI** — `scan` exits `1` when findings are present, `0` when clean, `2` on usage error:
+   ```yaml
+   - run: pip install -e . && adversa scan mypkg.mymodel:generate   # non-zero fails the job
+   ```
+
+
 ## Contents
 
 - [Why adversa?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
