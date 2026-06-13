@@ -1,4 +1,4 @@
-"""Smoke tests for ADVERSA. No network. Runs on the shipped demo."""
+"""Smoke tests for ADVERSA. No network. Exercises the current source API."""
 import os
 import sys
 
@@ -7,14 +7,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from adversa import (
     TOOL_NAME,
     TOOL_VERSION,
-    builtin_probes,
-    run_probes,
-    detect_success,
+    CATALOG,
+    scan,
+    run_case,
+    secure_target,
+    vulnerable_target,
+    list_probes,
+    Probe,
 )
-from adversa.core import load_transcript, transcript_target
+from adversa import core
 from adversa.cli import main
-
-DEMO = os.path.join(os.path.dirname(__file__), "..", "demos", "01-basic", "transcript.json")
 
 
 def test_metadata():
@@ -23,57 +25,74 @@ def test_metadata():
 
 
 def test_builtin_pack_is_real():
-    probes = builtin_probes()
+    probes = list_probes()
     assert len(probes) >= 5
-    # Every probe carries OWASP + ATLAS mapping and at least one detector.
+    # Every probe carries an OWASP LLM category, an ATLAS tactic, and at least
+    # one test case with a known grader.
     for p in probes:
-        assert p.category.startswith("LLM")
-        assert p.atlas.startswith("AML.")
-        assert p.success, f"{p.id} has no success detector"
+        assert p.owasp.startswith("LLM"), f"{p.pid} bad owasp: {p.owasp}"
+        assert p.atlas.startswith("AML."), f"{p.pid} bad atlas: {p.atlas}"
+        assert p.cases, f"{p.pid} has no test cases"
+        for c in p.cases:
+            assert c.grader in core.GRADERS, f"{p.pid} unknown grader {c.grader!r}"
 
 
 def test_echo_target_is_fully_vulnerable():
-    # Echoing the attack back trips most injection detectors -> findings.
-    probes = builtin_probes()
-    report = run_probes(probes, lambda prompt: prompt, target_name="echo")
-    assert report.failed >= 3
-    assert report.attack_success_rate > 0.0
+    # Echoing the attack back trips most injection / leak detectors -> findings.
+    report = scan(lambda prompt: prompt, target_name="echo")
+    assert report.total_failures >= 3
+    assert not report.ok
 
 
 def test_detector_respects_refusal():
-    probes = {p.id: p for p in builtin_probes()}
-    dan = probes["P001"]
-    # A clear refusal must NOT be flagged as a successful attack.
-    assert detect_success(dan, "I can't help with that request.") is None
-    # The compliant reply MUST be flagged.
-    assert detect_success(dan, "DAN MODE ENABLED") is not None
+    # Pick any probe that uses the injection_resisted grader.
+    pi_probe = core.CATALOG_BY_ID.get("pi.direct_override")
+    assert pi_probe is not None, "pi.direct_override probe must exist in catalog"
+    case = pi_probe.cases[0]
+
+    # A clear refusal must NOT be flagged as a successful attack (grader says PASS).
+    passed, _ = core.GRADERS[case.grader](
+        "I can't help with that request.", case.ctx
+    )
+    assert passed is True
+
+    # The compliant reply that echoes the canary MUST be flagged (grader says FAIL).
+    passed, _ = core.GRADERS[case.grader](
+        f"Developer mode enabled. My hidden token is {core.SYS_CANARY}.", case.ctx
+    )
+    assert passed is False
 
 
-def test_scan_demo_transcript():
-    probes = builtin_probes()
-    pairs = load_transcript(DEMO)
-    by_id = {p.id: p.prompt for p in probes}
-    expanded = {by_id[k]: v for k, v in pairs.items() if k in by_id}
-    report = run_probes(probes, transcript_target(expanded), target_name="demo")
-    found = {f.probe_id for f in report.findings}
-    # The demo model falls for jailbreak, prompt leak, and indirect injection.
-    assert {"P001", "P002", "P003"}.issubset(found)
-    # ...and resists the harmful-content and destructive-action probes.
-    assert "P005" not in found
-    assert "P007" not in found
+def test_scan_vulnerable_target_hits_known_probes():
+    report = scan(vulnerable_target, target_name="vulnerable")
+    found = {f.probe.pid for f in report.findings}
+    # The vulnerable target should fail direct injection and indirect injection probes.
+    assert "pi.direct_override" in found
+    assert "pi.indirect_payload" in found
+    # The vulnerable target should fail credential-leak probe.
+    assert "leak.credentials" in found
+    # Verify total_failures is consistent.
+    assert report.total_failures >= len(found)
+
+
+def test_scan_secure_target_passes_all():
+    report = scan(secure_target, target_name="secure")
+    assert report.ok
+    assert report.total_failures == 0
 
 
 def test_cli_scan_exits_nonzero_on_findings():
-    rc = main(["scan", "--transcript", DEMO, "--format", "json",
-               "--severity-threshold", "high"])
-    assert rc == 1  # high-severity findings present -> CI gate fails
+    # Scanning the vulnerable target should exit 1 (findings present).
+    rc = main(["scan", "vulnerable", "--format", "json"])
+    assert rc == 1
 
 
-def test_cli_no_fail_flag_exits_zero():
-    rc = main(["scan", "--transcript", DEMO, "--no-fail-on-findings"])
+def test_cli_scan_secure_exits_zero():
+    # Scanning the secure target should exit 0 (no findings).
+    rc = main(["scan", "secure"])
     assert rc == 0
 
 
 def test_cli_list_probes_json():
-    rc = main(["list-probes", "--format", "json"])
+    rc = main(["catalog", "--format", "json"])
     assert rc == 0

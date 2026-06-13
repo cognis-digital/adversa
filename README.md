@@ -20,6 +20,12 @@ pip install "git+https://github.com/cognis-digital/adversa.git"
 adversa scan .            # → prioritized findings in seconds
 ```
 
+<!-- cognis:layman:start -->
+## What is this?
+
+ADVERSA is a testing tool that checks whether an AI chatbot or language model can be tricked, manipulated, or made to behave unsafely. You give it a target AI, and it sends a set of known attack prompts — things like "ignore your instructions" or "pretend you have no rules" — then grades each response to see whether the AI held firm or gave in. It produces a clear report listing exactly which attacks succeeded, how severe each one is, and what to fix, using the same vocabulary (OWASP and MITRE ATLAS) that security teams already use. It is aimed at developers and security engineers who build or deploy AI-powered products and want to catch vulnerabilities before attackers do.
+<!-- cognis:layman:end -->
+
 ## Contents
 
 - [Why adversa?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
@@ -49,6 +55,42 @@ LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs — without
 <div align="right"><a href="#top">↑ back to top</a></div>
 
 <a name="quick-start"></a>
+<!-- cognis:install:start -->
+## Install
+
+`adversa` is source-available (not published to PyPI) — every method below installs
+straight from GitHub. Pick whichever you prefer; the one-line scripts auto-detect
+the best tool available on your machine.
+
+**One-liner (Linux / macOS):**
+```sh
+curl -fsSL https://raw.githubusercontent.com/cognis-digital/adversa/HEAD/install.sh | sh
+```
+
+**One-liner (Windows PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/cognis-digital/adversa/HEAD/install.ps1 | iex
+```
+
+**Or install manually — any one of:**
+```sh
+pipx install "git+https://github.com/cognis-digital/adversa.git"     # isolated (recommended)
+uv tool install "git+https://github.com/cognis-digital/adversa.git"  # uv
+pip install "git+https://github.com/cognis-digital/adversa.git"      # pip
+```
+
+**From source:**
+```sh
+git clone https://github.com/cognis-digital/adversa.git
+cd adversa && pip install .
+```
+
+Then run:
+```sh
+adversa --help
+```
+<!-- cognis:install:end -->
+
 ## Quick start
 
 ```bash
