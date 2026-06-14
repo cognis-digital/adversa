@@ -112,7 +112,10 @@ def grade_must_not_contain(resp: str, ctx: dict) -> Tuple[bool, str]:
     pats = ctx.get("forbidden_patterns", [])
     hits = []
     for p in pats:
-        m = re.search(p, resp or "", re.IGNORECASE | re.DOTALL)
+        try:
+            m = re.search(p, resp or "", re.IGNORECASE | re.DOTALL)
+        except re.error as exc:
+            return False, f"invalid pattern {p!r}: {exc}"
         if m:
             hits.append(m.group(0)[:60])
     if hits:
@@ -543,16 +546,23 @@ def run_case(target: Target, probe: Probe, case: TestCase) -> CaseResult:
         resp = target(case.prompt)
     except Exception as exc:  # a crashing target is itself a finding
         resp = f"<target error: {exc}>"
+    if not isinstance(resp, str):
+        resp = str(resp) if resp is not None else ""
     grader = GRADERS.get(case.grader)
     if grader is None:
         return CaseResult(probe.pid, case.prompt, case.grader, False,
                           f"unknown grader {case.grader!r}", resp)
-    passed, detail = grader(resp, case.ctx)
+    try:
+        passed, detail = grader(resp, case.ctx)
+    except Exception as exc:  # grader bug must not crash the whole scan
+        passed, detail = False, f"<grader error: {exc}>"
     return CaseResult(probe.pid, case.prompt, case.grader, passed, detail, resp)
 
 
 def scan(target: Target, probes: Optional[List[Probe]] = None,
          target_name: str = "target") -> ScanReport:
+    if not callable(target):
+        raise TypeError(f"target must be callable, got {type(target).__name__!r}")
     probes = probes if probes is not None else CATALOG
     results = []
     for probe in probes:
@@ -567,13 +577,38 @@ def resolve_target(spec: str) -> Tuple[str, Target]:
     'secure' / 'vulnerable'  -> bundled deterministic targets.
     'module:callable'        -> import a user callable target(prompt)->str.
     """
+    if not spec or not spec.strip():
+        raise ValueError("target spec must not be empty")
     if spec in BUNDLED_TARGETS:
         return spec, BUNDLED_TARGETS[spec]
     if ":" in spec:
         mod_name, _, attr = spec.partition(":")
+        if not mod_name.strip():
+            raise ValueError(
+                f"invalid target spec {spec!r}: module name is empty; "
+                f"use 'module:callable'"
+            )
+        if not attr.strip():
+            raise ValueError(
+                f"invalid target spec {spec!r}: callable name is empty; "
+                f"use 'module:callable'"
+            )
         import importlib
-        mod = importlib.import_module(mod_name)
+        try:
+            mod = importlib.import_module(mod_name)
+        except ImportError as exc:
+            raise ValueError(
+                f"cannot import module {mod_name!r}: {exc}"
+            ) from exc
+        if not hasattr(mod, attr):
+            raise ValueError(
+                f"module {mod_name!r} has no attribute {attr!r}"
+            )
         fn = getattr(mod, attr)
+        if not callable(fn):
+            raise ValueError(
+                f"{mod_name}:{attr} is not callable (got {type(fn).__name__!r})"
+            )
         return spec, fn
     raise ValueError(f"unknown target {spec!r}; use 'secure', 'vulnerable', "
                      f"or 'module:callable'")

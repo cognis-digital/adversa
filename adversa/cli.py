@@ -146,7 +146,14 @@ def main(argv=None) -> int:
     if not getattr(args, "cmd", None):
         parser.print_help()
         return 2
-    return args.func(args)
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:
+        print(f"\n[{core.TOOL_NAME}] interrupted", file=sys.stderr)
+        return 2
+    except Exception as exc:  # noqa: BLE001
+        print(f"[{core.TOOL_NAME}] unexpected error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
