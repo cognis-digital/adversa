@@ -36,3 +36,6 @@ adversa = "adversa.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["adversa"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
