@@ -32,14 +32,16 @@ adversa scan .            # → prioritized findings in seconds
    ```bash
    adversa catalog --owasp LLM01 --min-severity high
    ```
-3. **Scan a target** — the bundled `secure`/`vulnerable` references, or your own `module:callable` of signature `target(prompt) -> str`:
+3. **Scan a target** — the bundled `secure`/`vulnerable` references, a **captured-response transcript** (offline, no live endpoint), or your own `module:callable` of signature `target(prompt) -> str`:
    ```bash
    adversa scan vulnerable
+   adversa scan transcript:demos/01-healthcare-chatbot/transcript.json
    adversa scan mypkg.mymodel:generate --owasp LLM01
    ```
-4. **Read the output** as JSON, or inspect one probe's prompts + grader + remediation:
+4. **Read the output** as a table, JSON, or **SARIF 2.1.0** (for GitHub code-scanning), or inspect one probe's prompts + grader + remediation:
    ```bash
-   adversa scan vulnerable --format json | jq '.findings'
+   adversa scan vulnerable --format json | jq '.results[] | select(.passed==false)'
+   adversa scan vulnerable --format sarif > adversa.sarif
    adversa probe pi.direct_override
    adversa refs        # OWASP LLM Top-10 + ATLAS tactic tables
    ```
@@ -51,7 +53,7 @@ adversa scan .            # → prioritized findings in seconds
 
 ## Contents
 
-- [Why adversa?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
+- [Why adversa?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Demos](#demos) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
 
 <a name="why"></a>
 ## Why adversa?
@@ -65,13 +67,14 @@ LLM red-team harness — OWASP LLM Top 10 + MITRE ATLAS attack packs — without
 <a name="features"></a>
 ## Features
 
-- ✅ Severity Rank
-- ✅ Builtin Probes
-- ✅ Load Probes
-- ✅ Detect Success
-- ✅ Run Probes
-- ✅ Transcript Target
-- ✅ Load Transcript
+- ✅ 12-probe catalog mapped to OWASP LLM Top-10 (2025) + MITRE ATLAS tactics
+- ✅ Severity ranking + filtering (`--owasp`, `--atlas`, `--min-severity`, `--probe`)
+- ✅ Five graders (must-refuse, must-not-leak, must-not-contain, must-contain, injection-resisted)
+- ✅ **Transcript replay target** — red-team *captured* responses offline, no live endpoint
+- ✅ Bundled `secure` / `vulnerable` reference targets + `module:callable` for your own model
+- ✅ Output as **table · JSON · SARIF 2.1.0** (GitHub code-scanning ready)
+- ✅ CI gate via exit codes (0 clean · 1 findings · 2 usage)
+- ✅ 8 real-use-case [demos](demos/) with run commands + remediation guidance
 - ✅ Runs on Linux/macOS/Windows · Docker · devcontainer
 - ✅ Ports in Python, JavaScript, Go, and Rust (`ports/`)
 
@@ -100,6 +103,36 @@ $ adversa scan .
 
   2 findings · risk score 5 · 38ms
 ```
+
+<div align="right"><a href="#top">↑ back to top</a></div>
+
+<a name="demos"></a>
+## Demos — real scenarios you can run now
+
+Each [`demos/<NN-name>/`](demos/) holds a realistic input (a captured-response
+`transcript.json` in ADVERSA's real format, or a `module:callable` target) plus
+a `SCENARIO.md` explaining where the data came from, the exact command, what to
+expect, and how to act on the findings.
+
+| Demo | Scenario | What it shows |
+|---|---|---|
+| [01](demos/01-healthcare-chatbot/) | Healthcare chatbot, pre-launch | 4 findings — system-prompt + credential leak block launch |
+| [02](demos/02-post-hardening-clean/) | Same bot after hardening | **0 findings** — clean CI gate (exit 0) |
+| [03](demos/03-rag-indirect-injection/) | RAG poisoned document | indirect + encoded prompt injection (LLM01) |
+| [04](demos/04-agentic-tool-abuse/) | Agent with shell access | excessive agency (`rm -rf /`) + directive override |
+| [05](demos/05-customer-support-jailbreak/) | Support bot jailbreak | DAN persona + harmful-instruction elicitation |
+| [06](demos/06-rag-misinformation/) | Research assistant | fabricated citation + data-poisoning acceptance |
+| [07](demos/07-fully-vulnerable-baseline/) | Worst-case baseline | all 12 probes fail (`vulnerable` target) |
+| [08](demos/08-custom-import-target/) | Your own model | wiring a `module:callable` target into CI |
+
+```bash
+adversa scan transcript:demos/01-healthcare-chatbot/transcript.json   # 4 findings, exit 1
+adversa scan transcript:demos/02-post-hardening-clean/transcript.json # 0 findings, exit 0
+```
+
+The transcript shape is either a probe-id map (`{"leak.system_prompt": "<reply>"}`)
+or a list of `{"probe_id": "...", "response": "..."}` pairs — capture your model's
+replies once, then grade them offline as often as you like.
 
 <div align="right"><a href="#top">↑ back to top</a></div>
 

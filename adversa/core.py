@@ -557,19 +557,85 @@ def scan(target: Target, probes: Optional[List[Probe]] = None,
     probes = probes if probes is not None else CATALOG
     results = []
     for probe in probes:
+        # Let transcript/closure targets know which probe is active so they can
+        # serve a per-probe captured response. Harmless for plain callables.
+        try:
+            target._active_pid = probe.pid  # type: ignore[attr-defined]
+        except (AttributeError, TypeError):
+            pass
         crs = [run_case(target, probe, c) for c in probe.cases]
         results.append(ProbeResult(probe, crs))
     return ScanReport(target_name, results)
+
+
+def transcript_target(spec: dict) -> Target:
+    """Build a target that replays *captured* model responses (offline).
+
+    `spec` maps probe ids -> the captured response string. This lets a team
+    red-team responses they already recorded from a live endpoint (e.g. an
+    incident transcript, a CI capture, or a manual pen-test) without needing
+    network access or the live model at scan time. The same captured response
+    is graded against every case of the matching probe.
+
+    A response is looked up first by the probe id (set on the closure per call
+    via the engine), and the engine threads the active probe id through `ctx`.
+    Because the engine calls `target(prompt)` with only the prompt, we resolve
+    the response by exact-prompt match, falling back to a per-probe default
+    stored under the special key returned by `transcript_response_for`.
+    """
+    # Two accepted shapes:
+    #   {"pi.direct_override": "<reply>", ...}                (keyed by probe id)
+    #   [{"prompt": "...", "response": "..."}, ...]           (keyed by prompt)
+    by_prompt: Dict[str, str] = {}
+    by_pid: Dict[str, str] = {}
+    if isinstance(spec, list):
+        for row in spec:
+            if not isinstance(row, dict):
+                continue
+            resp = row.get("response", row.get("reply", ""))
+            if "prompt" in row:
+                by_prompt[row["prompt"]] = resp
+            if "probe_id" in row:
+                by_pid[row["probe_id"]] = resp
+            if "probe" in row:
+                by_pid[row["probe"]] = resp
+    elif isinstance(spec, dict):
+        # If it carries a "responses" / "transcript" wrapper, unwrap it.
+        inner = spec.get("responses") or spec.get("transcript") or spec
+        if isinstance(inner, list):
+            return transcript_target(inner)
+        for k, v in inner.items():
+            if isinstance(v, str):
+                by_pid[k] = v
+
+    def target(prompt: str) -> str:
+        if prompt in by_prompt:
+            return by_prompt[prompt]
+        # fall back to per-probe response threaded via the engine
+        pid = getattr(target, "_active_pid", None)
+        if pid is not None and pid in by_pid:
+            return by_pid[pid]
+        return ""
+
+    target._by_pid = by_pid          # type: ignore[attr-defined]
+    target._by_prompt = by_prompt    # type: ignore[attr-defined]
+    return target
 
 
 def resolve_target(spec: str) -> Tuple[str, Target]:
     """Resolve a target spec.
 
     'secure' / 'vulnerable'  -> bundled deterministic targets.
+    'transcript:<file>'      -> replay captured responses from a JSON file.
     'module:callable'        -> import a user callable target(prompt)->str.
     """
     if spec in BUNDLED_TARGETS:
         return spec, BUNDLED_TARGETS[spec]
+    if spec.startswith("transcript:"):
+        path = spec.split(":", 1)[1]
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        return f"transcript:{path}", transcript_target(data)
     if ":" in spec:
         mod_name, _, attr = spec.partition(":")
         import importlib
@@ -577,7 +643,7 @@ def resolve_target(spec: str) -> Tuple[str, Target]:
         fn = getattr(mod, attr)
         return spec, fn
     raise ValueError(f"unknown target {spec!r}; use 'secure', 'vulnerable', "
-                     f"or 'module:callable'")
+                     f"'transcript:<file>', or 'module:callable'")
 
 
 # --------------------------------------------------------------------------- #
@@ -646,6 +712,84 @@ def render_json(report: ScanReport) -> dict:
             }
             for r in report.results
         ],
+    }
+
+
+_SARIF_LEVEL = {
+    "info": "note", "low": "note", "medium": "warning",
+    "high": "error", "critical": "error",
+}
+
+
+def render_sarif(report: ScanReport) -> dict:
+    """SARIF 2.1.0 — for GitHub code-scanning and any SARIF-aware viewer.
+
+    Every probe becomes a `rule`; every failing case becomes a `result`. The
+    OWASP LLM id, the MITRE ATLAS tactic, and the remediation ride along so the
+    finding is actionable in the same vocabulary security teams already use.
+    """
+    rules = []
+    seen = set()
+    for r in report.results:
+        if r.probe.pid in seen:
+            continue
+        seen.add(r.probe.pid)
+        rules.append({
+            "id": r.probe.pid,
+            "name": r.probe.name,
+            "shortDescription": {"text": r.probe.name},
+            "fullDescription": {"text": r.probe.description},
+            "help": {"text": r.probe.remediation},
+            "defaultConfiguration": {
+                "level": _SARIF_LEVEL.get(r.probe.severity, "warning")
+            },
+            "properties": {
+                "owasp": r.probe.owasp,
+                "owasp_name": r.probe.owasp_name,
+                "atlas": r.probe.atlas,
+                "atlas_name": r.probe.atlas_name,
+                "severity": r.probe.severity,
+                "tags": [f"OWASP-{r.probe.owasp}", r.probe.atlas, "llm-security"],
+            },
+        })
+
+    results = []
+    for r in report.results:
+        for c in r.case_results:
+            if c.passed:
+                continue
+            results.append({
+                "ruleId": r.probe.pid,
+                "level": _SARIF_LEVEL.get(r.probe.severity, "warning"),
+                "message": {
+                    "text": f"{r.probe.name}: {c.detail} "
+                            f"(OWASP {r.probe.owasp} {r.probe.owasp_name} / "
+                            f"{r.probe.atlas} {r.probe.atlas_name})"
+                },
+                "locations": [{
+                    "physicalLocation": {
+                        "artifactLocation": {
+                            "uri": f"adversa://{report.target_name}/{r.probe.pid}"
+                        }
+                    }
+                }],
+                "properties": {"grader": c.grader},
+            })
+
+    return {
+        "version": "2.1.0",
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": TOOL_NAME,
+                    "version": TOOL_VERSION,
+                    "informationUri": "https://github.com/cognis-digital/adversa",
+                    "rules": rules,
+                }
+            },
+            "results": results,
+        }],
     }
 
 

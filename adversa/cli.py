@@ -94,6 +94,8 @@ def _cmd_scan(args) -> int:
 
     if args.format == "json":
         _emit(json.dumps(core.render_json(report), indent=2))
+    elif args.format == "sarif":
+        _emit(json.dumps(core.render_sarif(report), indent=2))
     else:
         _emit(core.render_table(report))
 
@@ -122,10 +124,16 @@ def build_parser() -> argparse.ArgumentParser:
     c.set_defaults(func=_cmd_catalog)
 
     s = sub.add_parser("scan", help="run probes against a target")
-    s.add_argument("target", help="secure | vulnerable | module:callable")
+    s.add_argument("target",
+                   help="secure | vulnerable | transcript:<file> | module:callable")
     s.add_argument("--probe", action="append",
                    help="run only this probe id (repeatable)")
-    _common_filters(s)
+    s.add_argument("--owasp", help="filter by OWASP id, e.g. LLM01")
+    s.add_argument("--atlas", help="filter by ATLAS tactic id, e.g. AML.TA0004")
+    s.add_argument("--min-severity", dest="min_severity",
+                   choices=list(core.SEVERITY_ORDER),
+                   help="only probes at/above this severity")
+    s.add_argument("--format", choices=["table", "json", "sarif"], default="table")
     s.set_defaults(func=_cmd_scan)
 
     pr = sub.add_parser("probe", help="show detail for one probe")

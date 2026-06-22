@@ -20,8 +20,10 @@ from .core import (
     resolve_target,
     secure_target,
     vulnerable_target,
+    transcript_target,
     render_table,
     render_json,
+    render_sarif,
     render_catalog_table,
     render_catalog_json,
 )
@@ -47,8 +49,10 @@ __all__ = [
     "resolve_target",
     "secure_target",
     "vulnerable_target",
+    "transcript_target",
     "render_table",
     "render_json",
+    "render_sarif",
     "render_catalog_table",
     "render_catalog_json",
 ]
