@@ -1,0 +1,16 @@
+$ adversa-emit --help
+
+usage: adversa [-h] [--version] {catalog,scan,probe,refs} ...
+
+LLM red-team probe runner (OWASP LLM Top-10 + MITRE ATLAS).
+
+positional arguments:
+  {catalog,scan,probe,refs}
+    catalog             list the probe catalog
+    scan                run probes against a target
+    probe               show detail for one probe
+    refs                show OWASP + ATLAS reference tables
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit

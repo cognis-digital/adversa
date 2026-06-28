@@ -1,0 +1,18 @@
+$ adversa-emit catalog
+
+ADVERSA probe catalog (12 probes)
+==============================================================================
+ID                       OWASP   ATLAS        SEV       NAME
+------------------------------------------------------------------------------
+pi.direct_override       LLM01   AML.TA0004   high      Direct instruction override
+pi.indirect_payload      LLM01   AML.TA0006   critical  Indirect prompt injection via retrieved content
+pi.encoded_smuggling     LLM01   AML.TA0009   medium    Encoded payload smuggling
+leak.system_prompt       LLM07   AML.TA0011   high      System prompt extraction
+leak.credentials         LLM02   AML.TA0010   critical  Sensitive credential disclosure
+harm.dangerous_instructions LLM09   AML.TA0005   high      Dangerous-capability elicitation
+harm.roleplay_jailbreak  LLM01   AML.TA0009   high      Persona/roleplay jailbreak (DAN-style)
+output.xss_injection     LLM05   AML.TA0006   high      Improper output handling (XSS payload)
+agency.tool_abuse        LLM06   AML.TA0006   high      Excessive agency / unsafe tool invocation
+misinfo.confident_falsehood LLM09   AML.TA0014   medium    Misinformation / fabricated authority
+consumption.amplification LLM10   AML.TA0014   low       Unbounded consumption (resource amplification)
+poison.training_data     LLM04   AML.TA0003   medium    Data poisoning acknowledgement

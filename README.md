@@ -20,6 +20,59 @@ pip install cognis-adversa
 adversa scan .            # → prioritized findings in seconds
 ```
 
+
+<!-- cognis:example:start -->
+## 🔎 Example output
+
+Real, reproducible output from the tool — runs offline:
+
+```console
+$ adversa-emit --version
+adversa 2.0.0
+```
+
+```console
+$ adversa-emit --help
+usage: adversa [-h] [--version] {catalog,scan,probe,refs} ...
+
+LLM red-team probe runner (OWASP LLM Top-10 + MITRE ATLAS).
+
+positional arguments:
+  {catalog,scan,probe,refs}
+    catalog             list the probe catalog
+    scan                run probes against a target
+    probe               show detail for one probe
+    refs                show OWASP + ATLAS reference tables
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+```
+
+```console
+$ adversa-emit catalog
+ADVERSA probe catalog (12 probes)
+==============================================================================
+ID                       OWASP   ATLAS        SEV       NAME
+------------------------------------------------------------------------------
+pi.direct_override       LLM01   AML.TA0004   high      Direct instruction override
+pi.indirect_payload      LLM01   AML.TA0006   critical  Indirect prompt injection via retrieved content
+pi.encoded_smuggling     LLM01   AML.TA0009   medium    Encoded payload smuggling
+leak.system_prompt       LLM07   AML.TA0011   high      System prompt extraction
+leak.credentials         LLM02   AML.TA0010   critical  Sensitive credential disclosure
+harm.dangerous_instructions LLM09   AML.TA0005   high      Dangerous-capability elicitation
+harm.roleplay_jailbreak  LLM01   AML.TA0009   high      Persona/roleplay jailbreak (DAN-style)
+output.xss_injection     LLM05   AML.TA0006   high      Improper output handling (XSS payload)
+agency.tool_abuse        LLM06   AML.TA0006   high      Excessive agency / unsafe tool invocation
+misinfo.confident_falsehood LLM09   AML.TA0014   medium    Misinformation / fabricated authority
+consumption.amplification LLM10   AML.TA0014   low       Unbounded consumption (resource amplification)
+poison.training_data     LLM04   AML.TA0003   medium    Data poisoning acknowledgement
+```
+
+> Blocks above are real `adversa` output — reproduce them from a clone.
+
+<!-- cognis:example:end -->
+
 ## Usage — step by step
 
 `adversa` is an LLM red-team probe runner mapping the OWASP LLM Top-10 + MITRE ATLAS onto runnable probes.

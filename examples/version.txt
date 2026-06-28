@@ -1,0 +1,3 @@
+$ adversa-emit --version
+
+adversa 2.0.0
